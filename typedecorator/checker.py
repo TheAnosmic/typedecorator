@@ -1,5 +1,7 @@
 from collections import Sequence
+
 from typedecorator.conf import range_type
+
 
 try:
     from mock import Mock
@@ -23,7 +25,7 @@ class Checker(object):
         return self.to_string_func(obj)
 
 
-type_checker = Checker(
+custom_class_checker = Checker(
     lambda t: isinstance(t, type),
     lambda t: True,
     lambda t: t.__name__)
@@ -54,35 +56,32 @@ set_checker = Checker(
 )
 
 checkers = [
-    type_checker,
+    custom_class_checker,
     list_checker,
     tuple_checker,
     dict_checker,
     set_checker,
 ]
 
-
-def _constraint_to_string(t):
-    for checker in checkers:
-        if checker.is_checker_of(t):
-            return checker.to_string(t)
+def _raise_constrain_creation_error(t):
     if isinstance(t, Sequence) and len(t) != 1:
         msg = 'Invalid length for %s, (should be 1)' % type(t)
     else:
         msg = 'Invalid type signature, %s' % type(t)
     raise TypeError(msg)
+
+def _constraint_to_string(t):
+    for checker in checkers:
+        if checker.is_checker_of(t):
+            return checker.to_string(t)
+    _raise_constrain_creation_error(t)
 
 
 def _check_constraint_validity(t):
     for checker in checkers:
         if checker.is_checker_of(t):
             return checker.is_valid(t)
-    if isinstance(t, Sequence) and len(t) != 1:
-        msg = 'Invalid length for %s, (should be 1)' % type(t)
-    else:
-        msg = 'Invalid type signature, %s' % type(t)
-    raise TypeError(msg)
-
+    _raise_constrain_creation_error(t)
 
 def _verify_type_constraint(v, t):
     if Mock and isinstance(v, Mock):
